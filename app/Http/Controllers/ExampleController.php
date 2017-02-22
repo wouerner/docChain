@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
+use App\File as FileModel;
 
 class ExampleController extends Controller
 {
@@ -26,22 +27,30 @@ class ExampleController extends Controller
 
     public function store(Request $request)
     {
+        $fileModel = new FileModel;
         $file = $request->file('file');
 
         if ($request->file('file')->isValid()) {
-            Storage::disk('local')->put($file->getClientOriginalName(), File::get($file));
 
-            $contents = Storage::get($file->getClientOriginalName());
+            $name = date('Y-m-d_H:s') . $file->getClientOriginalName();
+
+            Storage::disk('local')->put($name, File::get($file));
+
+            $contents = Storage::get($name);
             $hash = hash('sha512', $contents);
-            //dd($contents);
 
+            $fileModel->originalName = $file->getClientOriginalName();
+            $fileModel->hash = $hash;
+            $fileModel->path = $name;
+
+            $fileModel->save();
 
             return response()->json([ $file->getClientOriginalName(), $hash ]);
         }
         return response()->json('error');
     }
 
-    public function replicate(Request $request)
+    public function replicateStore(Request $request)
     {
         $file = $request->file('file');
 
